@@ -151,8 +151,143 @@ This plot is a visual of Covid survey responses regarding attitudes toward COVID
 ```{r}
 #| label: label-me-3
 
+raw_data <- read_csv(here("data", "covid-survey.csv"), skip = 1)
+view(raw_data)
+
+clean_raw_data <- raw_data |>
+  filter(!if_all(-response_id, is.na))
+
+view(clean_raw_data)
+
+relabel_data <- clean_raw_data |>
+  mutate(
+    exp_already_vax = case_when(exp_already_vax == 0 ~ "No",  
+                                exp_already_vax == 1 ~ "Yes", TRUE ~ NA_character_),
+    exp_flu_vax = case_when(exp_flu_vax == 0 ~ "No", 
+                            exp_flu_vax == 1 ~ "Yes", TRUE ~ NA_character_),
+    exp_profession = case_when(exp_profession == 0 ~ "Medical", 
+                               exp_profession == 1 ~ "Nursing", TRUE ~ NA_character_),
+    exp_gender = case_when(exp_gender == 0 ~ "Male", exp_gender == 1 ~ "Female", 
+                           exp_gender == 3 ~ "Non-binary third gender", exp_gender == 4 ~ "Prefer not to say", 
+                           TRUE ~ NA_character_),
+    exp_race = case_when(exp_race == 1 ~ "American Indian / Alaskan Native",
+                         exp_race == 2 ~ "Asian",
+                         exp_race == 3 ~ "Black / African American",
+                         exp_race == 4 ~ "Native Hawaiian / Other Pacific Islander",
+                         exp_race == 5 ~ "White", TRUE ~ NA_character_),
+    exp_ethnicity = case_when(exp_ethnicity == 1 ~ "Hispanic / Latino",
+                              exp_ethnicity == 2 ~ "Non-Hispanic / Non-Latino", TRUE ~ NA_character_),
+    exp_age_bin = case_when(
+        exp_age_bin == 0 ~ "<20",
+        exp_age_bin == 20 ~ "21-25",
+        exp_age_bin == 25 ~ "26-30",
+        exp_age_bin == 30 ~ ">30", TRUE ~ NA_character_),
+  )
+view(relabel_data)
+
+# The first pivot takes all columns starting with exp_ and groups them into two new columns
+# called explanatory and explanatory_value. Each explanatory variable is now its own row entry
+# The second pivot now modifies the columns with "resp_" to do something similar. It groups the
+# output of the first pivot into multiple rows based on resp.
+covid_survey_longer <- relabel_data |>
+  pivot_longer(
+    cols = starts_with("exp_"),
+    names_to = "explanatory",
+    values_to = "explanatory_value"
+  ) |>
+  filter(!is.na(explanatory_value)) |>
+  pivot_longer(
+    cols = starts_with("resp_"),
+    names_to = "response",
+    values_to = "response_value"
+  )
 
 
+covid_survey_longer
+
+covid_survey_summary_stats_by_group <- covid_survey_longer |>
+  group_by(explanatory, explanatory_value, response) |>
+  summarize(
+    mean = mean(response_value, na.rm = TRUE),
+    low = quantile(response_value, probs = 0.1, na.rm = TRUE),
+    high = quantile(response_value, probs = 0.9, na.rm = TRUE)
+  )
+covid_survey_summary_stats_by_group
+
+covid_survey_summary_stats_all <- covid_survey_longer |>
+  group_by(response) |>
+  summarize(
+    mean = mean(response_value, na.rm = TRUE),
+    low = quantile(response_value, probs = 0.1, na.rm = TRUE),
+    high = quantile(response_value, probs = 0.9, na.rm = TRUE)
+  ) |>
+  ungroup() |>
+  mutate(
+    explanatory = "All",
+    explanatory_value = ""
+  )
+
+covid_survey_summary_stats_all
+
+covid_survey_summary_stats <- bind_rows(
+  covid_survey_summary_stats_by_group, covid_survey_summary_stats_all
+)
+
+covid_survey_summary_stats
+
+
+
+response_labels <- c(
+  "resp_safety" = "Based on my understanding,\nI believe the vaccine is safe",
+  "resp_confidence_science" = "I am confident in the scientific\nvetting process for the new COVID vaccines",
+  "resp_feel_safe_at_work" = "Getting the vaccine will\nmake me feel safer at work",
+  "resp_will_recommend" = "I will recommend the vaccine\nto family, friends, and community members",
+  "resp_trust_info" = "I trust the information\nthat I have received about the vaccines",
+  "resp_concern_safety" = "I am concerned about the safety\nand side effects of the vaccine"
+)
+
+explanatory_labels <- c(
+  "exp_age_bin"    = "Age",
+  "exp_gender"     = "Gender",
+  "exp_race"       = "Race",
+  "exp_ethnicity"  = "Ethnicity",
+  "exp_profession" = "Profession",
+  "exp_already_vax"= "Had COVID vaccine",
+  "exp_flu_vax"    = "Had flu vaccine this year",
+  "All"            = "All"
+)
+
+# Plot code below
+
+ggplot(covid_survey_summary_stats, aes(x = mean, y = explanatory_value)) + 
+  geom_point(size = 0.7) +
+  geom_errorbarh(
+    aes(xmin = low, xmax = high),
+    height = 0.3,
+    size = 0.3
+  ) + 
+  facet_grid(explanatory ~ response,
+             scales = "free_y",
+             space = "free_y",
+             labeller = labeller(
+               explanatory = as_labeller(explanatory_labels, label_wrap_gen(15)),
+               response = as_labeller(response_labels, label_wrap_gen(20))
+             )) + 
+  labs(
+    x = "Mean Likert score\n(Error bars range from 10th to 90th percentile)",
+    y = NULL
+  ) +
+  theme(
+    strip.background = element_rect(fill = "gray90", color = "black", size = 0.1),
+    axis.text.y = element_text(size = 5),
+    strip.text.y = element_text(size = 5, angle = 0),
+    strip.text.x = element_text(size = 5),
+    panel.spacing = unit(.1, "lines"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size = 8),
+    axis.text.x = element_text(size = 6)
+  )
 ```
 
 
