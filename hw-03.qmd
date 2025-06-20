@@ -145,8 +145,15 @@ I used https://www.geeksforgeeks.org/r-language/how-to-add-image-to-ggplot2-in-r
 #| label: label-me-2
 
 ```
+This plot is a visual of Covid survey responses regarding attitudes toward COVID-19 vaccines. The x-axis shows the Likert scale from 1-5 for each question, 1 being most agreeable and 5 being least agreeable. The y-axis contains all of the different groups categorized by varying demographics (age, gender, profession, etc.). I do agree with some of these results intuitively. For example, I expected that anyone with a background in medicine would view the vaccine in a positive way. As expected, those in the medical profession ranked many of the questions on the Likert scale closer to a 1 or a 2. I was a little surprised to see that, when comparing medical and nursing results on the question "I will recommend the vaccine...", that there was a bit more variance on the medical profession. I expected the medical profession and nursing profession to be very very close in scoring. I also expected that the younger generation would rate the vaccine as safer and higher confidence, which turned out to be true in the data, especially compared to older ages.
 
 ## 3 - COVID survey - reconstruct
+```{r}
+#| label: label-me-3
+
+
+
+```
 
 
 ## 4 - COVID survey - re-reconstruct
