@@ -236,7 +236,6 @@ covid_survey_summary_stats <- bind_rows(
 covid_survey_summary_stats
 
 
-
 response_labels <- c(
   "resp_safety" = "Based on my understanding,\nI believe the vaccine is safe",
   "resp_confidence_science" = "I am confident in the scientific\nvetting process for the new COVID vaccines",
@@ -247,15 +246,16 @@ response_labels <- c(
 )
 
 explanatory_labels <- c(
+  "All"            = "All",
   "exp_age_bin"    = "Age",
   "exp_gender"     = "Gender",
   "exp_race"       = "Race",
   "exp_ethnicity"  = "Ethnicity",
   "exp_profession" = "Profession",
   "exp_already_vax"= "Had COVID vaccine",
-  "exp_flu_vax"    = "Had flu vaccine this year",
-  "All"            = "All"
+  "exp_flu_vax"    = "Had flu vaccine this year"
 )
+
 
 # Plot code below
 
@@ -292,5 +292,66 @@ ggplot(covid_survey_summary_stats, aes(x = mean, y = explanatory_value)) +
 
 
 ## 4 - COVID survey - re-reconstruct
+```{r}
+#| label: label-me-4
+
+
+covid_survey_summary_stats_by_group <- covid_survey_longer |>
+  group_by(explanatory, explanatory_value, response) |>
+  summarize(
+    mean = mean(response_value, na.rm = TRUE),
+    low = quantile(response_value, probs = 0.25, na.rm = TRUE),
+    high = quantile(response_value, probs = 0.75, na.rm = TRUE)
+  )
+
+covid_survey_summary_stats_all <- covid_survey_longer |>
+  group_by(response) |>
+  summarize(
+    mean = mean(response_value, na.rm = TRUE),
+    low = quantile(response_value, probs = 0.25, na.rm = TRUE),
+    high = quantile(response_value, probs = 0.75, na.rm = TRUE)
+  ) |>
+  ungroup() |>
+  mutate(
+    explanatory = "All",
+    explanatory_value = ""
+  )
+
+covid_survey_summary_stats <- bind_rows(
+  covid_survey_summary_stats_by_group, covid_survey_summary_stats_all
+)
+
+# Plot code below
+ggplot(covid_survey_summary_stats, aes(x = mean, y = explanatory_value)) + 
+  geom_point(size = 0.7) +
+  geom_errorbarh(
+    aes(xmin = low, xmax = high),
+    height = 0.3,
+    size = 0.3
+  ) + 
+  facet_grid(explanatory ~ response,
+             scales = "free_y",
+             space = "free_y",
+             labeller = labeller(
+               explanatory = as_labeller(explanatory_labels, label_wrap_gen(15)),
+               response = as_labeller(response_labels, label_wrap_gen(20))
+             )) + 
+  labs(
+    x = "Mean Likert score\n(Error bars range from 25th to 75th percentile)",
+    y = NULL
+  ) +
+  theme(
+    strip.background = element_rect(fill = "gray90", color = "black", size = 0.1),
+    axis.text.y = element_text(size = 5),
+    strip.text.y = element_text(size = 5, angle = 0),
+    strip.text.x = element_text(size = 5),
+    panel.spacing = unit(.1, "lines"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.title.x = element_text(size = 8),
+    axis.text.x = element_text(size = 6)
+  )
+
+```
 
 ## 5 - COVID survey - another view
