@@ -1,18 +1,143 @@
 ---
 title: "HW 03"
-author: "INSERT YOUR NAME HERE"
+author: "Matt Osterhoudt"
 format:
   html:
     embed-resources: true
 toc: true
+execute: 
+  warning: false
+  message: false
+  error: false
 ---
+
+
+## 0 - Setup
+
+```{r setup}
+knitr::opts_chunk$set(message = FALSE, warning = FALSE)
+
+if (!require("pacman")) 
+  install.packages("pacman")
+
+# use this line for installing/loading
+ pacman::p_load(tidyverse,
+                palmerpenguins,
+                here,
+                cowgrid,
+                dsbox,
+                fs,
+                janitor,
+                scales,
+                ggforce,
+                glue,
+                jpeg,
+                png,
+                grid,
+                cowplot) 
+install.packages("openintro")
+install.packages("ggridges")
+
+library(openintro)
+library(ggridges)
+
+devtools::install_github("tidyverse/dsbox")
+
+ggplot2::theme_set(ggplot2::theme_minimal(base_size = 14))
+
+knitr::opts_chunk$set(
+  fig.width = 7,
+  fig.asp = .618,
+  fig.retina = 3,
+  fig.align = "center",
+  dpi = 300
+)
+```
+
+
 
 ## 1 - Du Bois challenge.
 
 ```{r}
-#| label: label-me-1
+#| label: Du Bois Challenge 
 
+# Reading in the data and pivoting the data to a longer format. This will help with the visualization.
+income_data <- read_csv(here("data", "income.csv"))
+income_data_longer <- pivot_longer(
+  income_data,
+  cols = c("Rent", "Food", "Clothes", "Tax", "Other"),
+  names_to = "Category",
+  values_to = "Percentage"
+) 
+
+# Modifies the Category order to match
+income_data_longer$Category <- factor(income_data_longer$Category,
+                                      levels = c("Other", "Tax", "Clothes",
+                                                 "Food", "Rent"))
+
+y_axis_relabel <- c(
+  "$100-200" = "$100-300 ($139.1)",
+  "$200-300" = "$200-300 ($249.45)",
+  "$300-400" = "$300-400 ($335.66)",
+  "$400-500" = "$400-500 ($433.82)",
+  "$500-750" = "$500-$700 ($547)",
+  "$750-1000" = "$750-1000 ($880)",
+  "$1000 AND OVER" =  "$1000\nAND OVER ($1125)"
+)
+
+# Adds the background. 
+background_img <- readJPEG(here("images", "parchment_paper.jpg"))
+
+
+ggplot(income_data_longer, aes(x = Percentage, y = Class, fill = Category)) +
+  annotation_raster(background_img, xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf) +
+  geom_bar(stat = "identity", width = 0.4) +
+  scale_y_discrete(limits = rev(c(
+    "$100-200", "$200-300", "$300-400", "$400-500",
+    "$500-750", "$750-1000", "$1000 AND OVER"
+  )),labels = y_axis_relabel) +
+  scale_fill_manual(values = c(
+    "Rent" = "black",
+    "Food" = "purple",
+    "Clothes" = "red",
+    "Tax" = "blue",
+    "Other" = "gray"
+  )) + 
+  geom_text(
+    aes(label = case_when(Percentage < 1 ~ "", TRUE ~ paste0(Percentage, "%"))),
+    color = "white",
+    fontface = "bold",
+    size = 2.5,
+    position = position_stack(vjust = 0.5)
+    ) +
+  labs(
+    y = NULL,
+    x = NULL
+  ) + 
+  theme_minimal() + 
+  coord_cartesian(clip = "off") +
+  scale_x_continuous(limits = c(0, 100), expand = c(0,0)) + 
+  theme(
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.text.y = element_text(hjust = 0),
+    axis.title.y = element_text(angle = 0, size = 10, hjust = -2),
+    axis.text.x = element_blank(),
+    legend.position = "top",
+    legend.title = element_blank(),
+    legend.direction = "horizontal"
+  ) +
+  annotate("text",
+           x = 0,
+           y = 7.5,
+           label = "Class (Actual Average)",
+           hjust = 1,
+           size = 3)
+
+
+#I ran into the issue of the background not covering everything, so I used cowplot to help.
 ```
+I used https://www.geeksforgeeks.org/r-language/how-to-add-image-to-ggplot2-in-r/ to help figure out how to add the background image.
 
 ## 2 - COVID survey - interpret
 
