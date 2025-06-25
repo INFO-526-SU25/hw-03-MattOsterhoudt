@@ -84,9 +84,8 @@ y_axis_relabel <- c(
   "$1000 AND OVER" =  "$1000\nAND OVER ($1125)"
 )
 
-# Adds the background. 
+# Reads in the background. 
 background_img <- readJPEG(here("images", "parchment_paper.jpg"))
-
 
 plot_output <- ggplot(income_data_longer, aes(x = Percentage, y = Class, fill = Category)) +
   annotation_raster(background_img, xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf) +
@@ -134,8 +133,7 @@ plot_output <- ggplot(income_data_longer, aes(x = Percentage, y = Class, fill = 
            label = "Class (Actual Average)",
            hjust = 1,
            size = 3)
-
-
+# This code creates a new grid with our read in image as the background, and places our plot over it.
 grid.newpage()
 grid.raster(background_img, width = unit(1, "npc"), height = unit(1, "npc"))
 print(plot_output, newpage = FALSE)
@@ -375,6 +373,7 @@ response_labels <- c(
 
 # Grabbing the raw but already filtered data and grabbing the 2 variables needed
 percent_data <- covid_survey_longer |>
+  filter(!is.na(response_value)) |>
   group_by(response, response_value) |>
   summarize(count = n()) |>
   mutate(percentage = count / sum(count) * 100)
@@ -388,8 +387,8 @@ mutate(response_value = case_when(
   response_value == 4 ~ "Somewhat disagree",
   response_value == 5 ~ "Strongly disagree"),
   response = factor(response, levels = names(response_labels), labels = response_labels),
-  response_value = factor(response_value, levels = c("Strongly disagree", "Somewhat agree", "Neither agree nor disagree",
-                                                    "Somewhat disagree", "Strongly Agree"), ordered = TRUE)
+  response_value = factor(response_value, levels = c("Strongly Agree", "Somewhat agree", "Neither agree nor disagree",
+                                                    "Somewhat disagree", "Strongly disagree"), ordered = TRUE)
  )
 view (percent_data)
 
@@ -398,10 +397,40 @@ diverging_data <- percent_data |>
     pos_or_neg = case_when(
       response_value %in% c("Strongly Agree", "Somewhat agree") ~ percentage,
       response_value %in% c("Strongly disagree", "Somewhat disagree") ~ -percentage,
-      TRUE ~ 0 # Or neutral
+      response_value == "Neither agree nor disagree" ~ 0 # Or neutral
     )
   )
 
-ggplot()
+ggplot(diverging_data, aes(x = pos_or_neg, y = response, fill = response_value)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_manual(
+    values = c(
+      "Strongly disagree" = "#D73027",
+      "Somewhat disagree" = "#FC8D59",
+      "Neither agree nor disagree" = "#FFFFBF",
+      "Somewhat agree" = "#91CF60",
+      "Strongly Agree" = "#1A9850"
+    )) +
+  theme_minimal() +
+  theme(
+    axis.text = element_text(size = 5),
+    legend.title = element_blank()
+  ) 
+
+ggplot(percent_data, aes(x = percentage, y = response, fill = response_value)) +
+  geom_bar(stat = "identity", position = "stack") +
+  scale_fill_manual(
+    values = c(
+      "Strongly disagree" = "#D73027",
+      "Somewhat disagree" = "#FC8D59",
+      "Neither agree nor disagree" = "#FFFFBF",
+      "Somewhat agree" = "#91CF60",
+      "Strongly Agree" = "#1A9850"
+    )) +
+  theme_minimal() +
+  theme(
+    axis.text = element_text(size = 5),
+    legend.title = element_blank()
+  )
 
 ```
