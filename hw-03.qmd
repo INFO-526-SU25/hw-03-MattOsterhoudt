@@ -33,7 +33,8 @@ if (!require("pacman"))
                 glue,
                 jpeg,
                 png,
-                grid) 
+                grid,
+                cowplot) 
 install.packages("openintro")
 install.packages("ggridges")
 
@@ -364,10 +365,10 @@ The plot is now a bit different. Rather than focusing on a wider range of data, 
 
 response_labels <- c(
   "resp_safety" = "Based on my understanding,\nI believe the vaccine is safe",
-  "resp_confidence_science" = "I am confident in the scientific\nvetting process for the new COVID vaccines",
+  "resp_confidence_science" = "I am confident in the scientific vetting\nprocess for the new COVID vaccines",
   "resp_feel_safe_at_work" = "Getting the vaccine will\nmake me feel safer at work",
-  "resp_will_recommend" = "I will recommend the vaccine\nto family, friends, and community members",
-  "resp_trust_info" = "I trust the information\nthat I have received about the vaccines",
+  "resp_will_recommend" = "I will recommend the vaccine to\nfamily, friends, and community members",
+  "resp_trust_info" = "I trust the information that I\nhave received about the vaccines",
   "resp_concern_safety" = "I am concerned about the safety\nand side effects of the vaccine"
 )
 
@@ -401,13 +402,13 @@ diverging_data <- percent_data |>
     )
   )
 
-ggplot(diverging_data, aes(x = pos_or_neg, y = response, fill = response_value)) +
-  geom_bar(stat = "identity", position = "stack") +
+diverging_bar_chart <- ggplot(diverging_data, aes(x = pos_or_neg, y = response, fill = response_value)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.7) +
   scale_fill_manual(
     values = c(
       "Strongly disagree" = "#D73027",
       "Somewhat disagree" = "#FC8D59",
-      "Neither agree nor disagree" = "#FFFFBF",
+      "Neither agree nor disagree" = "yellow",
       "Somewhat agree" = "#91CF60",
       "Strongly Agree" = "#1A9850"
     )) +
@@ -415,22 +416,53 @@ ggplot(diverging_data, aes(x = pos_or_neg, y = response, fill = response_value))
   theme(
     axis.text = element_text(size = 5),
     legend.title = element_blank()
-  ) 
-
-ggplot(percent_data, aes(x = percentage, y = response, fill = response_value)) +
-  geom_bar(stat = "identity", position = "stack") +
-  scale_fill_manual(
-    values = c(
-      "Strongly disagree" = "#D73027",
-      "Somewhat disagree" = "#FC8D59",
-      "Neither agree nor disagree" = "#FFFFBF",
-      "Somewhat agree" = "#91CF60",
-      "Strongly Agree" = "#1A9850"
-    )) +
-  theme_minimal() +
-  theme(
-    axis.text = element_text(size = 5),
-    legend.title = element_blank()
+  ) + 
+  labs(
+    title = "Sentiment on Vaccine Questions (Diverging vs Stacked)",
+    x = NULL,
+    y = NULL,
+    fill = "Response"
   )
 
+bar_chart <- ggplot(percent_data, aes(x = percentage, y = response, fill = response_value)) +
+  geom_bar(stat = "identity", position = "stack", width = 0.7) +
+  scale_fill_manual(
+    values = c(
+      "Strongly disagree" = "#D73027",
+      "Somewhat disagree" = "#FC8D59",
+      "Neither agree nor disagree" = "yellow",
+      "Somewhat agree" = "#91CF60",
+      "Strongly Agree" = "#1A9850"
+    )) +
+  theme_minimal() +
+  theme(
+    axis.text = element_text(size = 5),
+    legend.title = element_blank()
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    fill = "Response"
+  )
+
+combined_plot <- plot_grid(
+  diverging_bar_chart + theme(legend.position = "none",),
+  bar_chart + theme(legend.position = "right",
+                    legend.text = element_text(size = 7),
+                    axis.text.y = element_blank(
+                    )),
+  label_size = 10,
+  ncol = 2,
+  align = "h",
+  rel_widths = c(1, 1.2)
+)
+
+final_plot <- plot_grid(combined_plot, ncol = 1, rel_heights = c(0.1, 1))
+final_plot
+
+
 ```
+
+Alt text: The figure is titled "Sentiment on Vaccine Questions (Diverging vs Stacked) and displays sentiment towards six covid-19 survey questions. The plot on the left (diverging) shows the sentiments in a color-coded fashion, with stronger agreeing sentiments in the green, and disagreeing sentiments red/orange. In the middle, yellow displays those with neutral responses. A Likert scale was used for these questions, with a 1 as Strong Agreement and a 5 as Strong Disagreement. The plot on the right (stacked) shows the sentiments in the same color-coded fashion. The overall trends for both reveal that in the following questions: "Based on my understand...", "I am confident...", "Getting the vaccine will...", "I will recommend...", "I trust...", there are significantly more responses in the "somewhat agree" or "Strong agree" categories. In the question "I am concerned about the safety...", we see a more spreadout distribution, with higher concerns over side effects.
+
+Comparability: Both charts paint the data in a slightly different way. The diverging chart shows a lot more positive sentiment because of how the data is skewed far more to the right. This is better at showing the overall opinion (agree vs disagree). The stacked bar chart gives a better breakdown of comparing the responses spread out per question. The evenly stacked bars and the colors make it easier to compare the results. It's also easier to see the split opinions or results in the 100% bar chart rather than the diverging bar chart. Putting both side by side gives us a better overview of the story.
