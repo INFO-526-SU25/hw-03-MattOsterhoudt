@@ -33,8 +33,7 @@ if (!require("pacman"))
                 glue,
                 jpeg,
                 png,
-                grid,
-                cowplot) 
+                grid) 
 install.packages("openintro")
 install.packages("ggridges")
 
@@ -61,6 +60,7 @@ knitr::opts_chunk$set(
 ```{r}
 #| label: Du Bois Challenge 
 
+
 # Reading in the data and pivoting the data to a longer format. This will help with the visualization.
 income_data <- read_csv(here("data", "income.csv"))
 income_data_longer <- pivot_longer(
@@ -72,15 +72,14 @@ income_data_longer <- pivot_longer(
 
 # Modifies the Category order to match
 income_data_longer$Category <- factor(income_data_longer$Category,
-                                      levels = c("Other", "Tax", "Clothes",
-                                                 "Food", "Rent"))
+                                      levels = c("Rent", "Food", "Clothes", "Tax", "Other"))
 
 y_axis_relabel <- c(
-  "$100-200" = "$100-300 ($139.1)",
+  "$100-200" = "$100-200 ($139.1)",
   "$200-300" = "$200-300 ($249.45)",
   "$300-400" = "$300-400 ($335.66)",
   "$400-500" = "$400-500 ($433.82)",
-  "$500-750" = "$500-$700 ($547)",
+  "$500-750" = "$500-$750 ($547)",
   "$750-1000" = "$750-1000 ($880)",
   "$1000 AND OVER" =  "$1000\nAND OVER ($1125)"
 )
@@ -89,9 +88,9 @@ y_axis_relabel <- c(
 background_img <- readJPEG(here("images", "parchment_paper.jpg"))
 
 
-ggplot(income_data_longer, aes(x = Percentage, y = Class, fill = Category)) +
+plot_output <- ggplot(income_data_longer, aes(x = Percentage, y = Class, fill = Category)) +
   annotation_raster(background_img, xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = Inf) +
-  geom_bar(stat = "identity", width = 0.4) +
+  geom_bar(stat = "identity", width = 0.4, position = position_stack(reverse = TRUE)) +
   scale_y_discrete(limits = rev(c(
     "$100-200", "$200-300", "$300-400", "$400-500",
     "$500-750", "$750-1000", "$1000 AND OVER"
@@ -105,14 +104,15 @@ ggplot(income_data_longer, aes(x = Percentage, y = Class, fill = Category)) +
   )) + 
   geom_text(
     aes(label = case_when(Percentage < 1 ~ "", TRUE ~ paste0(Percentage, "%"))),
-    color = "white",
+    color =  ifelse(income_data_longer$Category == "Rent", "white", "black"),
     fontface = "bold",
     size = 2.5,
-    position = position_stack(vjust = 0.5)
+    position = position_stack(vjust = 0.5, reverse = TRUE)
     ) +
   labs(
     y = NULL,
-    x = NULL
+    x = NULL,
+    title = "Annual Expenditure For"
   ) + 
   theme_minimal() + 
   coord_cartesian(clip = "off") +
@@ -125,7 +125,8 @@ ggplot(income_data_longer, aes(x = Percentage, y = Class, fill = Category)) +
     axis.text.x = element_blank(),
     legend.position = "top",
     legend.title = element_blank(),
-    legend.direction = "horizontal"
+    legend.direction = "horizontal",
+    plot.title = element_text(hjust = 0.5)
   ) +
   annotate("text",
            x = 0,
@@ -135,9 +136,13 @@ ggplot(income_data_longer, aes(x = Percentage, y = Class, fill = Category)) +
            size = 3)
 
 
-#I ran into the issue of the background not covering everything, so I used cowplot to help.
+grid.newpage()
+grid.raster(background_img, width = unit(1, "npc"), height = unit(1, "npc"))
+print(plot_output, newpage = FALSE)
+ 
 ```
-I used https://www.geeksforgeeks.org/r-language/how-to-add-image-to-ggplot2-in-r/ to help figure out how to add the background image.
+I used https://www.geeksforgeeks.org/r-language/how-to-add-image-to-ggplot2-in-r/ to help figure out how to add the background image.\
+I also briefly utilized AI in order to figure out how to plot the background image on everything, because it initially was only capturing the plot and ignored the axis points and legend. AI suggested using the grid package, so I tried that out.
 
 ## 2 - COVID survey - interpret
 
@@ -353,5 +358,50 @@ ggplot(covid_survey_summary_stats, aes(x = mean, y = explanatory_value)) +
   )
 
 ```
+The plot is now a bit different. Rather than focusing on a wider range of data, the 25th to 75th only focuses on 50% of our data, eliminating some of the variability. The shorter errors bars indicate less variability, but also less information about the ends of our initial distribution. I don't think this changes my conclusions from before, as the data appears to still trend in a similar way.
 
 ## 5 - COVID survey - another view
+```{r}
+#| label: label-me-5
+
+response_labels <- c(
+  "resp_safety" = "Based on my understanding,\nI believe the vaccine is safe",
+  "resp_confidence_science" = "I am confident in the scientific\nvetting process for the new COVID vaccines",
+  "resp_feel_safe_at_work" = "Getting the vaccine will\nmake me feel safer at work",
+  "resp_will_recommend" = "I will recommend the vaccine\nto family, friends, and community members",
+  "resp_trust_info" = "I trust the information\nthat I have received about the vaccines",
+  "resp_concern_safety" = "I am concerned about the safety\nand side effects of the vaccine"
+)
+
+# Grabbing the raw but already filtered data and grabbing the 2 variables needed
+percent_data <- covid_survey_longer |>
+  group_by(response, response_value) |>
+  summarize(count = n()) |>
+  mutate(percentage = count / sum(count) * 100)
+
+view(percent_data)
+percent_data <- percent_data |> 
+mutate(response_value = case_when(
+  response_value == 1 ~ "Strongly Agree",
+  response_value == 2 ~ "Somewhat agree",
+  response_value == 3 ~ "Neither agree nor disagree",
+  response_value == 4 ~ "Somewhat disagree",
+  response_value == 5 ~ "Strongly disagree"),
+  response = factor(response, levels = names(response_labels), labels = response_labels),
+  response_value = factor(response_value, levels = c("Strongly disagree", "Somewhat agree", "Neither agree nor disagree",
+                                                    "Somewhat disagree", "Strongly Agree"), ordered = TRUE)
+ )
+view (percent_data)
+
+diverging_data <- percent_data |>
+  mutate(
+    pos_or_neg = case_when(
+      response_value %in% c("Strongly Agree", "Somewhat agree") ~ percentage,
+      response_value %in% c("Strongly disagree", "Somewhat disagree") ~ -percentage,
+      TRUE ~ 0 # Or neutral
+    )
+  )
+
+ggplot()
+
+```
